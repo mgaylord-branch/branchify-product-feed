@@ -1,0 +1,29 @@
+{
+  "ad_partners": [
+    {
+      "name": "facebook",
+      "template": "https://branchster.app.link/?%243p=a_facebook&~ad_id={{ad.id}}&~ad_name={{ad.name}}&~ad_set_id={{adset.id}}&~ad_set_name={{adset.name}}&~campaign={{campaign.name}}&~campaign_id={{campaign.id}}"
+    },
+    {
+      "name": "google",
+      "template": "https://branchster.app.link/?%243p=a_google_adwords&%24always_deeplink=false&gclid={gclid}&lpurl={lpurl}&~ad_set_id={adgroupid}&~campaign_id={campaignid}&~channel={network}&~keyword={keyword}&~placement={placement}"
+    }
+  ],
+  "link_configuration": {
+    "excluded": [""],
+    "link_key": "link",
+    "mappings": [
+    {
+      "feedKey": "image_link",
+      "branchKey": "$og_image"
+    },
+    {
+      "feedKey": "title",
+      "branchKey": "$og_title"
+    },
+    {
+      "feedKey": "description",
+      "branchKey": "$og_description"
+    }
+  ]}
+}

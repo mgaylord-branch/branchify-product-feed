@@ -1,0 +1,139 @@
+service: s3-product-feed
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  environment:
+    FEED_OUTPUT_BUCKET: ${self:custom.config.outputBucket}
+    FEED_DELIMITER: ${self:custom.config.feedDelimiter}
+    CONFIG_BUCKET: ${self:custom.config.configBucket}
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+  
+custom:
+  config: ${file(config.json)}
+  app-name: ${self:custom.config.appName}
+  s3Buckets:
+    BUCKET_NAME: ${self:custom.app-name}-${self:service}-${self:custom.config.stage}-sources-bucket
+
+iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - s3:*
+      Resource: 
+        - "arn:aws:lambda:${self:custom.config.region}:*:function:*"
+        - "arn:aws:ses:${self:custom.config.region}:*"
+        - "arn:aws:ses:${self:custom.config.region}:*:identity/*"
+        - "arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}/*"
+        - "arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}"
+        - "arn:aws:logs:${self:custom.config.region}:*:log-group:*"
+        - "arn:aws:logs:${self:custom.config.region}:*:log-group:*:*:*"
+
+functions:
+  feed:
+    handler: src/handlers/feed.run
+    timeout: 900
+    environment:
+      FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
+    events:
+      - s3:
+          bucket: ${self:custom.s3Buckets.BUCKET_NAME}
+          event: s3:ObjectCreated:*
+          existing: true
+
+resources:
+  Resources:
+    S3BucketFeedSources:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: '${self:custom.s3Buckets.BUCKET_NAME}'
+    TransformLambdaPermissionS3:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        FunctionName:
+          'Fn::GetAtt':
+            - FeedLambdaFunction
+            - Arn
+        Principal: 's3.amazonaws.com'
+        Action: 'lambda:InvokeFunction'
+        SourceAccount:
+          Ref: AWS::AccountId
+        SourceArn: 'arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}'
+    S3BucketFeedOutput:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: '${self:provider.environment.FEED_OUTPUT_BUCKET}'
+    S3BucketConfiguration:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: '${self:provider.environment.CONFIG_BUCKET}'
+    LambdaWritePermissionS3:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        FunctionName:
+          'Fn::GetAtt':
+            - FeedLambdaFunction
+            - Arn
+        Principal: 's3.amazonaws.com'
+        Action: 'lambda:InvokeFunction'
+        SourceAccount:
+          Ref: AWS::AccountId
+        SourceArn: 'arn:aws:s3:::${self:provider.environment.FEED_OUTPUT_BUCKET}'
+
+
+#    The following are a few example events you can configure
+#    NOTE: Please make sure to change your handler code to work with those events
+#    Check the event documentation for details
+#    events:
+#      - http:
+#          path: users/create
+#          method: get
+#      - websocket: $connect
+#      - s3: ${env:BUCKET}
+#      - schedule: rate(10 minutes)
+#      - sns: greeter-topic
+#      - stream: arn:aws:dynamodb:region:XXXXXX:table/foo/stream/1970-01-01T00:00:00.000
+#      - alexaSkill: amzn1.ask.skill.xx-xx-xx-xx
+#      - alexaSmartHome: amzn1.ask.skill.xx-xx-xx-xx
+#      - iot:
+#          sql: "SELECT * FROM 'some_topic'"
+#      - cloudwatchEvent:
+#          event:
+#            source:
+#              - "aws.ec2"
+#            detail-type:
+#              - "EC2 Instance State-change Notification"
+#            detail:
+#              state:
+#                - pending
+#      - cloudwatchLog: '/aws/lambda/hello'
+#      - cognitoUserPool:
+#          pool: MyUserPool
+#          trigger: PreSignUp
+#      - alb:
+#          listenerArn: arn:aws:elasticloadbalancing:us-east-1:XXXXXX:listener/app/my-load-balancer/50dc6c495c0c9188/
+#          priority: 1
+#          conditions:
+#            host: example.com
+#            path: /hello
+
+#    Define function environment variables here
+#    environment:
+#      variable2: value2
+
+# you can add CloudFormation resource templates here
+#resources:
+#  Resources:
+#    NewResource:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: my-new-bucket
+#  Outputs:
+#     NewOutput:
+#       Description: "Description for the output"
+#       Value: "Some output value"
