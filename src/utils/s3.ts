@@ -26,3 +26,35 @@ export async function uploadReadableStream(stream: NodeJS.ReadableStream, bucket
   }
   return s3.upload(params).promise()
 }
+
+export async function createMultiPartUpload(Key: string, Bucket: string): Promise<S3UploadParams> {
+  const upload = await s3.createMultipartUpload({Key, Bucket}).promise();
+  return { UploadId: upload.UploadId, Key, Bucket}
+}
+
+export async function uploadPart(params: S3UploadParams, partNumber: number, body: string) {
+  return s3.uploadPart({
+    ...params,
+    Body: Buffer.from(body, 'utf-8'),
+    PartNumber: partNumber,
+  }).promise()
+}
+
+export async function completeUploadPart(params: S3UploadParams, parts: any) {
+  return s3.completeMultipartUpload({
+    ...params,
+    MultipartUpload: {
+      Parts: parts.map(({ ETag }, i) => ({ ETag, PartNumber: i + 1 }))
+    }
+  }).promise()
+}
+
+export async function abortMultipartUpload(params: S3UploadParams) {
+  return s3.abortMultipartUpload(params).promise()
+}
+
+export interface S3UploadParams {
+  Key:string, 
+  Bucket: string, 
+  UploadId: string
+}

@@ -1,8 +1,8 @@
 import { StringStream } from 'scramjet'
-import { getStream, getFile } from '../utils/s3'
+import { getStream, getFile, uploadPart, createMultiPartUpload, completeUploadPart, abortMultipartUpload } from '../utils/s3'
 import { parse, unparse } from 'papaparse'
 import { Product } from '../models/Product'
-import { feedDelimiter, configurationBucket } from '../utils/Config'
+import { feedDelimiter, configurationBucket, outputBucket } from '../utils/Config'
 import { S3CreateEvent, Context, Callback } from 'aws-lambda'
 import { FeedConfiguration, loadFeedConfigurations } from '../models/Mapping'
 import { transform } from '../transformers/Transformer'
@@ -13,8 +13,8 @@ export const run = async (event: S3CreateEvent, _context: Context, _callback: Ca
   const filename = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '))
   const stream = getStream(bucket, filename)
   console.debug(`Creating Branchified feed for: ${bucket}/${filename}`)
-  await branchifyFeed(stream, filename)
-  console.debug(`Feed created successfully`)
+  await branchifyFeed(stream)
+  console.debug(`Feed created successfully for file: ${filename}`)
 
   return {
     statusCode: 200,
@@ -24,17 +24,45 @@ export const run = async (event: S3CreateEvent, _context: Context, _callback: Ca
 }
 
 export async function branchifyFeed(
-  stream: NodeJS.ReadableStream,
-  filename: string
-): Promise<{batchCount: number, eventCount: number}> {
-  let counter = 0
-  let sequence = 0
-  var header: string
-
+  stream: NodeJS.ReadableStream
+) {
   const feedConfig = await getFeedConfiguration()
-  
-  const feeds = await Promise.all(feedConfig.map(async configuration => {
-    return await StringStream.from(stream, { maxParallel: 10 })
+  return Promise.all(feedConfig.map(async configuration => {
+    return createFeed(stream, configuration)
+    // return await StringStream.from(stream, { maxParallel: 10 })
+    // .lines('\n')
+    // .batch(500)
+    // .map(async function(chunks: Array<string>) {
+    //   var input = ''
+    //   if (!header) {
+    //     header = chunks[0]
+    //     input = chunks.join('\n')
+    //   } else {
+    //     input = header + '\n' + chunks.join('\n')
+    //   }
+    //   const products = parseProducts(input)
+    //   const branchified = convertProducts(products, configuration)
+    //   counter = counter + products.length
+    //   sequence++
+    //   // convert products list back to csv and return...
+    //   return unparse(branchified)
+    // })
+    // .toArray()
+    // .catch((e: { stack: any }) => {
+    //   console.error(`Error converting products: ${e.stack} counter: ${counter}`)
+    //   throw e
+    // })
+  }))
+}
+
+export async function createFeed(stream: NodeJS.ReadableStream, configuration: FeedConfiguration) {
+  const destinationKey = configuration.destinationKey
+  const bucket = outputBucket
+
+  const params = await createMultiPartUpload(destinationKey, bucket)
+  let i = 1
+  let header: string
+  StringStream.from(stream, { maxParallel: 10 })
     .lines('\n')
     .batch(500)
     .map(async function(chunks: Array<string>) {
@@ -47,22 +75,22 @@ export async function branchifyFeed(
       }
       const products = parseProducts(input)
       const branchified = convertProducts(products, configuration)
-      counter = counter + products.length
-      sequence++
       // convert products list back to csv and return...
       return unparse(branchified)
     })
-    .toArray()
-    .catch((e: { stack: any }) => {
-      console.error(`Error converting products: ${e.stack} counter: ${counter}`)
-      throw e
+    .map(body => {
+      console.debug(`Uploading part: ${i}`)
+      return uploadPart(params, i++, body)
     })
-  }))
-  
-  console.debug(`Result: ${JSON.stringify(feeds)}`)
-  console.debug(`Products returned: ${feeds.length} for filename: ${filename}`)
-  console.debug(`Total products processed: ${counter} - Total sequences: ${sequence}`)
-  return { batchCount: sequence, eventCount: counter}
+    .toArray()
+    .then(parts => {
+      console.debug(`All parts uploaded, completing upload: ${JSON.stringify(parts)}`)
+      return completeUploadPart(params, parts)
+    })
+    .catch((e) => {
+      console.error(`Error, aborting upload due to: `, e)
+      return abortMultipartUpload(params)
+    })
 }
 
 export function convertProducts(products: Product[], configuration: FeedConfiguration) : Product[] {

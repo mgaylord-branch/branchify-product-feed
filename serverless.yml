@@ -6,9 +6,9 @@ provider:
   stage: dev
   region: us-east-1
   environment:
-    FEED_OUTPUT_BUCKET: ${self:custom.config.outputBucket}
     FEED_DELIMITER: ${self:custom.config.feedDelimiter}
-    CONFIG_BUCKET: ${self:custom.config.configBucket}
+    OUTPUT_BUCKET: ${self:custom.app-name}-${self:service}-${self:custom.config.stage}-${self:custom.config.outputBucket}
+    CONFIG_BUCKET: ${self:custom.app-name}-${self:service}-${self:custom.config.stage}-${self:custom.config.configBucket}
 
 plugins:
   - serverless-plugin-typescript
@@ -18,7 +18,7 @@ custom:
   config: ${file(config.json)}
   app-name: ${self:custom.config.appName}
   s3Buckets:
-    BUCKET_NAME: ${self:custom.app-name}-${self:service}-${self:custom.config.stage}-sources-bucket
+    SOURCES_BUCKET: ${self:custom.app-name}-${self:service}-${self:custom.config.stage}-sources-bucket
 
 iamRoleStatements:
     - Effect: Allow
@@ -29,8 +29,12 @@ iamRoleStatements:
         - "arn:aws:lambda:${self:custom.config.region}:*:function:*"
         - "arn:aws:ses:${self:custom.config.region}:*"
         - "arn:aws:ses:${self:custom.config.region}:*:identity/*"
-        - "arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}/*"
-        - "arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}"
+        - "arn:aws:s3:::${self:custom.s3Buckets.SOURCES_BUCKET}/*"
+        - "arn:aws:s3:::${self:custom.s3Buckets.SOURCES_BUCKET}"
+        - "arn:aws:s3:::${self:environment.OUTPUT_BUCKET}/*"
+        - "arn:aws:s3:::${self:environment.OUTPUT_BUCKET}"
+        - "arn:aws:s3:::${self:environment.CONFIG_BUCKET}/*"
+        - "arn:aws:s3:::${self:environment.CONFIG_BUCKET}"
         - "arn:aws:logs:${self:custom.config.region}:*:log-group:*"
         - "arn:aws:logs:${self:custom.config.region}:*:log-group:*:*:*"
 
@@ -42,7 +46,7 @@ functions:
       FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
     events:
       - s3:
-          bucket: ${self:custom.s3Buckets.BUCKET_NAME}
+          bucket: ${self:custom.s3Buckets.SOURCES_BUCKET}
           event: s3:ObjectCreated:*
           existing: true
 
@@ -51,7 +55,7 @@ resources:
     S3BucketFeedSources:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: '${self:custom.s3Buckets.BUCKET_NAME}'
+        BucketName: '${self:custom.s3Buckets.SOURCES_BUCKET}'
     TransformLambdaPermissionS3:
       Type: 'AWS::Lambda::Permission'
       Properties:
@@ -63,11 +67,11 @@ resources:
         Action: 'lambda:InvokeFunction'
         SourceAccount:
           Ref: AWS::AccountId
-        SourceArn: 'arn:aws:s3:::${self:custom.s3Buckets.BUCKET_NAME}'
+        SourceArn: 'arn:aws:s3:::${self:custom.s3Buckets.SOURCES_BUCKET}'
     S3BucketFeedOutput:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: '${self:provider.environment.FEED_OUTPUT_BUCKET}'
+        BucketName: '${self:provider.environment.OUTPUT_BUCKET}'
     S3BucketConfiguration:
       Type: AWS::S3::Bucket
       Properties:
@@ -83,7 +87,7 @@ resources:
         Action: 'lambda:InvokeFunction'
         SourceAccount:
           Ref: AWS::AccountId
-        SourceArn: 'arn:aws:s3:::${self:provider.environment.FEED_OUTPUT_BUCKET}'
+        SourceArn: 'arn:aws:s3:::${self:provider.environment.OUTPUT_BUCKET}'
 
 
 #    The following are a few example events you can configure

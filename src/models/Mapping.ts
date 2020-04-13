@@ -1,7 +1,8 @@
 export interface FeedConfiguration {
   name: string,
   linkTemplate: string,
-  linkConfiguration: LinkConfiguration
+  linkConfiguration: LinkConfiguration,
+  destinationKey: string
 }
 
 export interface LinkConfiguration {
@@ -18,10 +19,11 @@ export interface Mapping {
 export function loadFeedConfigurations(config: any): FeedConfiguration[] {
   const { ad_partners, link_configuration } = config
   return ad_partners.map((partner): FeedConfiguration => {
-    const {name, template} = partner
+    const { name, template, destinationKey } = partner
     return {
       linkTemplate: template,
       linkConfiguration: link_configuration,
+      destinationKey,
       name
     }
   })

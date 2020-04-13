@@ -5,10 +5,10 @@ export function transform(products: Product[], config: FeedConfiguration) : Prod
   const {linkConfiguration, linkConfiguration: { link_key }, linkTemplate } = config
   return products.map(product => {
     let transformed = product
-    console.debug(`linkKey: ${link_key} from product: ${JSON.stringify(transformed)}`)
     const productLink = product[link_key]
     if (!productLink) {
-      throw Error(`Link key: ${link_key} missing product object`)
+      console.warn(`Link key: ${link_key} missing in: ${JSON.stringify(product)}`)
+      return undefined
     }
     var link = `${linkTemplate}&%24fallback_url=${productLink}`
     Object.keys(product).forEach(key => {
@@ -28,5 +28,5 @@ export function transform(products: Product[], config: FeedConfiguration) : Prod
     })
     transformed[link_key] = link
     return transformed
-  })
+  }).filter( object => !!object )
 }
