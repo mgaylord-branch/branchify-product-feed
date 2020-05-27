@@ -2,8 +2,8 @@ import * as AWS from 'aws-sdk'
 
 export const s3 = new AWS.S3({
   region: process.env.REGION,
-  accessKeyId: "AKIAV7QWTMUFZF5ECYNG",
-  secretAccessKey: "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"
+  accessKeyId: "",
+  secretAccessKey: ""
 })
 
 export const outputBucket = process.env.OUTPUT_BUCKET
