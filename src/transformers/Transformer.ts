@@ -7,7 +7,6 @@ export function transform(products: Product[], config: FeedConfiguration) : Prod
     let transformed = product
     const productLink = product[link_key]
     if (!productLink) {
-      console.warn(`Link key: ${link_key} missing in: ${JSON.stringify(product)}`)
       return undefined
     }
     var link = `${linkTemplate}&%24fallback_url=${productLink}`

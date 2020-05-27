@@ -17,11 +17,17 @@ export async function getFile(bucket: string, filename: string): Promise<string>
   return object.Body.toString()
 }
 
-export async function uploadReadableStream(stream: NodeJS.ReadableStream, bucket: string, key: string, path: string) {
+export async function getFileSize(bucket: string, filename: string): Promise<number> {
+    const result = await s3.headObject({ Key: filename, Bucket: bucket })
+        .promise()
+    return result.ContentLength
+}
+
+export async function uploadReadableStream(body: String | NodeJS.ReadableStream, bucket: string, key: string, path: string) {
   const params = {
     Bucket: bucket, 
     Key: key, 
-    Body: stream,
+    Body: body,
     Metadata: { downloadPath: path}
   }
   return s3.upload(params).promise()
