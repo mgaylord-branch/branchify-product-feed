@@ -32,7 +32,9 @@ Copy the link:
 ![Copy Link](docs/copyLink.png)
 
 Your link should look something similar to below except it will have your own Branch link domain:
-`https://branch-demo.app.link/LXxzTv52O6?%243p=a_rtb_house_sa&~campaign={campaign_name}&~campaign_id={campaign_id}&~channel={channel}&~click_id={click_id}&~cost_currency={cost_currency}&~cost_value={cost_value}&~secondary_publisher={publisher}`
+```
+https://branch-demo.app.link/LXxzTv52O6?%243p=a_rtb_house_sa&~campaign={campaign_name}&~campaign_id={campaign_id}&~channel={channel}&~click_id={click_id}&~cost_currency={cost_currency}&~cost_value={cost_value}&~secondary_publisher={publisher}
+```
 
 Open the `FeedConfig.json` file from the `src/mappings` folder and configure the ad partner in the `ad_partners` section of the configuration:
 
