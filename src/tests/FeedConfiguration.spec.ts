@@ -18,13 +18,13 @@ describe('Mapping functions', () => {
     console.log(`Feed config: ${JSON.stringify(feedConfig)}`)
      configurations = loadFeedConfigurations(feedConfig)
 
-     const testFile = jest.requireActual('path').join(__dirname, '../../test-feeds/GoogleFeed_432_en.tsv')
+     const testFile = jest.requireActual('path').join(__dirname, '../../test-feeds/GoogleFeed_432_en_truncated.tsv')
      fileContents = await readFile(testFile)
      products = parseProducts(fileContents, '\t')
   })
   
   it('Loads feed configuration without errors', () => {
-    expect(configurations.length).toEqual(2)
+    expect(configurations.length).toEqual(1)
     const { destinationKey, linkConfiguration, linkTemplate } = configurations[0]
     expect(destinationKey).toEqual('facebook-products.csv')
     expect(linkTemplate).toEqual('https://branchster.app.link/?%243p=a_facebook&~ad_id={{ad.id}}&~ad_name={{ad.name}}&~ad_set_id={{adset.id}}&~ad_set_name={{adset.name}}&~campaign={{campaign.name}}&~campaign_id={{campaign.id}}')
@@ -36,7 +36,7 @@ describe('Mapping functions', () => {
 
   it('Parses a tabbed csv to JSON correctly', async (done) => {
     const linkKey = configurations[0].linkConfiguration.link_key
-    expect(products.length).toEqual(263)
+    expect(products.length).toEqual(2)
     for (var i = 0; i < products.length; i++) {
       expect(products[i][linkKey]).toBeTruthy()
     }
@@ -60,8 +60,9 @@ describe('Mapping functions', () => {
       return convertProducts(products, configurations[0])
     })
     .toArray()
-    console.debug(`Products: ${JSON.stringify(result.length)}`)
-    expect(result.length).toEqual(14873)
+    const flattened = [].concat.apply([], result)
+    console.debug(`Products: ${JSON.stringify(flattened.length)}`)
+    expect(flattened.length).toEqual(2)
     done()
   })
 
