@@ -9,7 +9,7 @@ export function transform(products: Product[], config: FeedConfiguration) : Prod
     if (!productLink) {
       return undefined
     }
-    var link = `${linkTemplate}&%24fallback_url=${productLink}`
+    var link = `${linkTemplate}&%24fallback_url=${encodeURIComponent(productLink)}`
     Object.keys(product).forEach(key => {
       if (!!linkConfiguration.excluded.find(ex => ex === key)) {
         return
