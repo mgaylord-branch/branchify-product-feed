@@ -13,7 +13,7 @@
     "@types/jest": "^25.2.1",
     "@types/papaparse": "^5.0.3",
     "jest": "^25.2.7",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "serverless": "^1.71.3",
     "serverless-offline": "^5.12.1",
     "serverless-plugin-typescript": "^1.1.9",
